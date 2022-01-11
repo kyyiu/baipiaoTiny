@@ -2,6 +2,28 @@
 const fs = require('fs');
 const Path = require("path");
 const Https = require("https");
+const readLine = require('readline')
+let count = 0
+let timer = null
+let finished = 0
+
+function startCompressing() {
+  timer = setInterval(() => {
+    // 清除控制台信息， 参考 http://nodejs.cn/api/readline.html#readlineclearlinestream-dir-callback
+    // process相关信息 参考 http://nodejs.cn/api/process.html#processstdout
+    readLine.clearLine(process.stdout, 0)
+    readLine.cursorTo(process.stdout, 0, 0)
+    // 打印在控制台的信息
+    // process.stdout.write('压缩中'+'.'.repeat(count))
+    process.stdout.write('已完成'+finished)
+    count %= 5
+    count += 1
+    if (finished === total) {
+      clearInterval(timer)
+      console.log('\n压缩结束')
+    }
+  }, 500)
+}
 
 // 文件夹存在判断
 const hasImgDirectory = fs.existsSync('./img')
@@ -28,6 +50,8 @@ files.forEach(ele => {
     fileNameArr.push(ele)
   }
 })
+
+const total = fileNameArr.length 
 
 // 使用这两个网站的压缩功能
 const TINYIMG_URL = [
@@ -114,14 +138,24 @@ async function CompressImg(path) {
     const data = await DownloadImg(obj.output.url);
     const dpath = Path.join("./aim/", Path.basename(path));
     fs.writeFileSync(dpath, data, "binary");
+    finished += 1
   } catch (err) {
     console.log('错误发生', err, '当前文件--', path)
   }
 }
 
-fileNameArr.forEach(ele => {
-  // 延迟操作
-  setTimeout(() => {
-    CompressImg(rootDirector + ele)
-  }, 50)
-})
+startCompressing()
+
+function sleep(gap) {
+  return new Promise(res => setTimeout(res, gap))
+}
+
+(async () => {
+  for (const i of fileNameArr) {
+    // 延迟操作
+    await sleep(50)
+    
+    CompressImg(rootDirector + i)
+  }
+})()
+
