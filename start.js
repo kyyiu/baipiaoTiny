@@ -6,8 +6,12 @@ const readLine = require('readline')
 let count = 0
 let timer = null
 let finished = 0
+let beforeSize = 0
+let afterSize = 0
 
 function startCompressing() {
+  // 先完全清空一次控制台
+  process.stdout.write(process.platform === 'win32' ? '\x1B[2J\x1B[0f' : '\x1B[2J\x1B[3J\x1B[H')
   timer = setInterval(() => {
     // 清除控制台信息， 参考 http://nodejs.cn/api/readline.html#readlineclearlinestream-dir-callback
     // process相关信息 参考 http://nodejs.cn/api/process.html#processstdout
@@ -16,11 +20,15 @@ function startCompressing() {
     // 打印在控制台的信息
     // process.stdout.write('压缩中'+'.'.repeat(count))
     process.stdout.write('已完成'+finished)
+    
+    
     count %= 5
     count += 1
     if (finished === total) {
       clearInterval(timer)
-      console.log('\n压缩结束')
+      console.log(`\n压缩结束, 总共压缩文件${finished}个`)
+      afterSize = getDirectorFilesInfo('./aim/')
+      console.log(`\n压缩前的大小为${(beforeSize / 1024).toFixed(1) + 'Kb'}, \n压缩后的大小为${(afterSize / 1024).toFixed(1) + 'Kb'}`)
     }
   }, 500)
 }
@@ -39,17 +47,25 @@ if (!hasImgDirectory) {
 
 const rootDirector = './img/'
 const fileNameArr = []
-// 同步读取这个文件夹下所有的文件信息
-const files = fs.readdirSync(rootDirector)
 
-// 保存文件的名字
-files.forEach(ele => {
-  // 获取文件信息
-  let stat = fs.lstatSync(rootDirector + ele)
-  if (stat.isFile()) {
-    fileNameArr.push(ele)
-  }
-})
+function getDirectorFilesInfo(path) {
+  let totalSize = 0
+  // 同步读取这个文件夹下所有的文件信息
+  const files = fs.readdirSync(path)
+
+  // 保存文件的名字
+  files.forEach(ele => {
+    // 获取文件信息
+    let stat = fs.lstatSync(path + ele)
+    totalSize += stat.size
+    if (stat.isFile()) {
+      fileNameArr.push(ele)
+    }
+  })
+  return totalSize
+}
+
+beforeSize = getDirectorFilesInfo(rootDirector)
 
 const total = fileNameArr.length 
 
